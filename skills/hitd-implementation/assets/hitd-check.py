@@ -111,6 +111,8 @@ def check_state(feature_dir):
             findings.append(f"{path}: {name} は current_phase より前なので completed か skipped にすること(現在 `{phases[name]}`)")
     if current != "done" and phases[current] not in ("in_progress", "completed"):
         findings.append(f"{path}: current_phase の {current} は in_progress か completed にすること(現在 `{phases[current]}`)")
+    if current == "done" and phases["verification"] != "completed":
+        findings.append(f"{path}: current_phase が done なら verification は completed にすること(現在 `{phases['verification']}`)")
     for name in PHASES[index + 1:]:
         if phases[name] != "pending":
             findings.append(f"{path}: {name} は current_phase より後なので pending にすること(現在 `{phases[name]}`)")

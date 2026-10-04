@@ -15,7 +15,7 @@ description: |
 
 - 入力: `status: approved` の `specification.md` と `design.md`、`contract-snapshot.md`、`adr/`、プロジェクト規約、戻り先が implementation の未処理の Change Request。前の Phase が `skipped` で成果物がない場合は、人間が指定した既存の仕様とコード
 - 成果物: 実装コードとテスト
-- 委譲されている権限: `contract-snapshot.md` の宣言を変えない範囲の実装とテスト
+- 委譲されている権限: `contract-snapshot.md` の宣言と、`design.md` の責務、依存方向、状態の所有を変えない範囲の実装とテスト
 - 完了で委譲される権限: Verification Phase を始めること
 
 ## 前提
@@ -42,7 +42,10 @@ description: |
 3. 実装とテストを書く。
     - Design Stub のメソッド本体を実装し、`specification.md` の Acceptance Criteria ごとにテストを書くこと
     - private なメソッドの構成と局所的なアルゴリズムは、人間にたずねずに決めること
-    - `contract-snapshot.md` の宣言を変える変更、または `specification.md` の振る舞いを変える変更が必要な場合は、その変更を加えずに手順5へ進む。判断の例は「委譲の範囲の例」にある
+    - 次のどれかを変える変更が必要な場合は、その変更を加えずに手順5へ進む。判断の例は「委譲の範囲の例」にある
+        - `contract-snapshot.md` の宣言
+        - `design.md` の Responsibilities、Dependency Direction、State Ownership に書かれた内容
+        - `specification.md` の振る舞い
     - すべての Acceptance Criteria に実装とテストがそろったら、手順4へ進む
 4. 検証する。
     - プロジェクトのビルドとテストのコマンドを実行し、成功することを確かめること
