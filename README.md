@@ -1,4 +1,4 @@
-# human-in-the-design Skill 設計概要
+# human-in-the-design
 
 ## 概要
 
