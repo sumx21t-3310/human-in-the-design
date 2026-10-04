@@ -7,7 +7,7 @@
 Usage:
   uv run hitd-check.py state <feature-dir>
   uv run hitd-check.py artifact <artifact-file>
-  uv run hitd-check.py gate <feature-dir> <phase>
+  uv run hitd-check.py gate <feature-dir> <phase> [--root <project-root>]
   uv run hitd-check.py snapshot <contract-snapshot.md> [--root <project-root>]
 
 Prints "OK" and exits 0 when every check passes.
@@ -141,7 +141,7 @@ def check_artifact(path):
     return findings
 
 
-def check_gate(feature_dir, phase):
+def check_gate(feature_dir, phase, root):
     if phase not in PHASES:
         return [f"phase `{phase}` が {PHASES} のどれでもない"]
     findings, data = check_state(feature_dir)
@@ -158,15 +158,20 @@ def check_gate(feature_dir, phase):
         artifact_data, _, artifact_findings = read_frontmatter(artifact)
         if artifact_findings:
             findings.extend(artifact_findings)
+        elif artifact_data.get("phase") != name:
+            findings.append(f"{artifact}: phase が `{name}` ではない(現在 `{artifact_data.get('phase')}`)")
         elif artifact_data.get("status") != "approved":
             findings.append(f"{artifact}: status が approved ではない(現在 `{artifact_data.get('status')}`)")
         else:
             findings.extend(check_artifact(artifact))
+    if PHASES.index(phase) > PHASES.index("design") and data["phases"]["design"] == "completed":
+        findings.extend(check_snapshot(feature_dir / "contract-snapshot.md", root))
     return findings
 
 
-def squeeze(text):
-    return re.sub(r"\s+", "", text)
+def tokens(text):
+    """Separate words and symbols with single spaces so that matches respect word boundaries."""
+    return " " + " ".join(re.findall(r"\w+|[^\w\s]", text)) + " "
 
 
 def check_snapshot(path, root):
@@ -191,7 +196,7 @@ def check_snapshot(path, root):
         if target is None or not line.strip():
             continue
         count += 1
-        if squeeze(line) not in squeeze(target.read_text(encoding="utf-8")):
+        if tokens(line) not in tokens(target.read_text(encoding="utf-8")):
             findings.append(f"{number}行目: Contract Drift。`{target}` に宣言が見つからない: {line.strip()}")
     if count == 0 and not findings:
         findings.append(f"{path}: 宣言が1件も書かれていない")
@@ -215,7 +220,7 @@ def main():
     elif len(args) == 2 and args[0] == "artifact":
         findings = check_artifact(Path(args[1]))
     elif len(args) == 3 and args[0] == "gate":
-        findings = check_gate(Path(args[1]), args[2])
+        findings = check_gate(Path(args[1]), args[2], root)
     elif len(args) == 2 and args[0] == "snapshot":
         findings = check_snapshot(Path(args[1]), root)
     else:

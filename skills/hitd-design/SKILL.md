@@ -145,7 +145,7 @@ public async Task<User?> FindAsync(UserId id, CancellationToken cancellationToke
 
 ## Contract Snapshot の形
 
-見出しは、プロジェクトのルートからのファイルの相対パスです。コードブロックには、宣言を1行に1つずつ書きます。検査は、空白を除いた宣言の文字列がファイルにあることを確かめます。
+見出しは、プロジェクトのルートからのファイルの相対パスです。コードブロックには、宣言を1行に1つずつ書きます。検査は、宣言を語と記号に分け、その並びがファイルにあることを確かめます。空白と改行の違いは無視します。
 
 ````markdown
 # Contract Snapshot
