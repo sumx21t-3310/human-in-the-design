@@ -113,6 +113,8 @@ def check_state(feature_dir):
         findings.append(f"{path}: current_phase の {current} は in_progress か completed にすること(現在 `{phases[current]}`)")
     if current == "done" and phases["verification"] != "completed":
         findings.append(f"{path}: current_phase が done なら verification は completed にすること(現在 `{phases['verification']}`)")
+    elif current == "done":
+        findings.extend(check_approved(feature_dir, "verification"))
     for name in PHASES[index + 1:]:
         if phases[name] != "pending":
             findings.append(f"{path}: {name} は current_phase より後なので pending にすること(現在 `{phases[name]}`)")
@@ -140,7 +142,32 @@ def check_artifact(path):
         for heading in COMMON_HEADINGS:
             if heading in found and not found[heading]:
                 findings.append(f"{path}: status が approved なのに `## {heading}` の本文が空")
+        if phase == "verification" and not result_rows(found.get("Verification Results", "")):
+            findings.append(f"{path}: status が approved なのに `## Verification Results` の表に結果の行がない")
     return findings
+
+
+def result_rows(text):
+    """Return table rows that are neither a separator nor one of the template's header rows."""
+    rows = [line.strip() for line in text.splitlines() if line.strip().startswith("|")]
+    return [
+        row for row in rows
+        if not re.fullmatch(r"[|\s:-]+", row)
+        and not re.match(r"\|\s*(検証|Acceptance Criteria)\s*\|", row)
+    ]
+
+
+def check_approved(feature_dir, name):
+    """Check that the artifact of phase `name` exists, declares that phase, and is approved."""
+    artifact = feature_dir / ARTIFACT_FILES[name]
+    data, _, findings = read_frontmatter(artifact)
+    if findings:
+        return findings
+    if data.get("phase") != name:
+        return [f"{artifact}: phase が `{name}` ではない(現在 `{data.get('phase')}`)"]
+    if data.get("status") != "approved":
+        return [f"{artifact}: status が approved ではない(現在 `{data.get('status')}`)"]
+    return check_artifact(artifact)
 
 
 def check_gate(feature_dir, phase, root):
@@ -154,18 +181,8 @@ def check_gate(feature_dir, phase, root):
     if data["phases"][phase] != "in_progress":
         findings.append(f"phases.{phase} は `{data['phases'][phase]}` で、in_progress ではない")
     for name in PHASES[:PHASES.index(phase)]:
-        if data["phases"][name] != "completed" or name not in ARTIFACT_FILES:
-            continue
-        artifact = feature_dir / ARTIFACT_FILES[name]
-        artifact_data, _, artifact_findings = read_frontmatter(artifact)
-        if artifact_findings:
-            findings.extend(artifact_findings)
-        elif artifact_data.get("phase") != name:
-            findings.append(f"{artifact}: phase が `{name}` ではない(現在 `{artifact_data.get('phase')}`)")
-        elif artifact_data.get("status") != "approved":
-            findings.append(f"{artifact}: status が approved ではない(現在 `{artifact_data.get('status')}`)")
-        else:
-            findings.extend(check_artifact(artifact))
+        if data["phases"][name] == "completed" and name in ARTIFACT_FILES:
+            findings.extend(check_approved(feature_dir, name))
     if PHASES.index(phase) > PHASES.index("design") and data["phases"]["design"] == "completed":
         findings.extend(check_snapshot(feature_dir / "contract-snapshot.md", root))
     return findings
